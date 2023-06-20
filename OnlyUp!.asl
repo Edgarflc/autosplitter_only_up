@@ -1,6 +1,6 @@
 // OnlyUP autosplitter
 
-state("OnlyUP-Win64-Shipping")		// pointer path to coords
+state("OnlyUP-Win64-Shipping")		// pointer paths
 {
 	double coordX  : 0x073C5ED8, 0x180, 0xA0, 0x98, 0xA8, 0x60, 0x328, 0x260;
 	double coordY  : 0x073C5ED8, 0x180, 0xA0, 0x98, 0xA8, 0x60, 0x328, 0x268;
@@ -12,38 +12,59 @@ state("OnlyUP-Win64-Shipping")		// pointer path to coords
 startup
 {
 	refreshRate = 30;
-
+	
+	vars.softReset = false;
 	vars.currSplit = 0;
 
 	// central point coords x/y/z and radius for each sphere
 	vars.splitsCoords = new double[,] {
-		{2944.7, 16212.3, 8622.9, 150},		// Station
-		{4708.9, 5209.9, 33897.7, 150},		// Oil
-		{2543.8, 18042.9, 48138.8, 150},	// Subway
-		{6202.0, 9771.4, 84020.1, 150},		// Highway
-		{4110.1, 12163.9, 90032.4, 150},	// Elevator
-		{604.1, 15248.9, 138287.0, 150},	// Heaven
-		{1602.2, 3773.3, 156149.0, 150},	// Hand
-		{-613.3, 5418.3, 171682.0, 150},	// Chess
-		{-1235.0, 9267.1, 198913.0, 150},	// Cannon
-		{1010.1, 24550.3, 2445463.0, 150},	// Apple
-		{2273.9, 16354.5, 283501.0, 150},	// Space
-		{-4753.2, 19013.4, 324117.0, 100},	// End
+		{ 3062.76, 16389.2, 8697.5, 134 },      // Station
+		{ 4623.09, 4867.59, 33884.4, 170 },     // Oil
+		{ 2257.24, 18548.2, 48138.5, 1254 },    // Subway
+		{ 5434.17, 8707.72, 83707.9, 814 },     // Highway
+		{ 4229.35, 12127.4, 90037.4, 92 },      // Elevator
+		{ 2936, 8172.93, 105057, 2921 },        // Winner?
+		{ 1064.72, 3701.3, 156054, 453 },       // Hand
+		{ -1537.41, 3881.58, 171863, 1392 },    // En Passant
+		{ -1209.93, 9218.39, 198943, 88 },      // Cannon
+		{ 1005.6, 24691.5, 244610, 97 },	    // Apple
+		{ 1353.83, 15993, 283501, 2760 },       // Illuminati
+		{ -4753.2, 19013.4, 324117.0, 100 },	// End
 	};
-
 	vars.maxSplits = vars.splitsCoords.Length / 4;
+	
+	if (timer.Run.Count == 1)
+		vars.currSplit = vars.maxSplits - 1;
+		
+	timer.OnUndoSplit += (s, e) => vars.currSplit--;
+	timer.OnSkipSplit += (s, e) => vars.currSplit++;
 }
 
 update
 {
-	if(current.coordX == 0 && current.coordY == 0)
+	if (current.coordX == 0 && current.coordY == 0 && current.coordZ == 0)
+	{
+		vars.softReset = true;
 		return false;
+	}
+}
+
+reset
+{
+	if (vars.softReset && current.velocX == 0 && current.velocY == 0)
+	{
+		vars.softReset = false;
+		return true;
+	}
 }
 
 start
 {
-	if(current.velocX != 0 || current.velocY != 0)
+	if (current.velocX != 0 || current.velocY != 0)
+	{
+		vars.softReset = false;
 		return true;
+	}
 }
 
 split
@@ -57,13 +78,13 @@ split
 	double distSquared = dx * dx + dy * dy + dz * dz;
 	double radius = vars.splitsCoords[i, 3];
 
-	if(distSquared <= radius * radius)
+	if (distSquared <= radius * radius)
 		return true;
 }
 
 onSplit
 {
-	if((vars.currSplit+1) < vars.maxSplits)
+	if ((vars.currSplit + 1) < vars.maxSplits)
 			vars.currSplit++;
 }
 
