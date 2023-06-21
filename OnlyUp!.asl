@@ -116,14 +116,54 @@ init
 		if (settings["split" + i.ToString()])
 			vars.splits.Add(i);
 	}
+	
+	// endgame cutscene start detection
+	if(game != null && memory.ReadValue<ulong>((IntPtr)(modules.First().BaseAddress + 0x191FE80)) == 0x74894810245C8948)
+	{
+		vars.endSeqPtr = game.AllocateMemory(4+6+15+14);
+		vars.injCodePtr = vars.endSeqPtr + 4;
+		
+		print("pointer to hook code : " + vars.injCodePtr.ToString("X"));
+
+		List<byte> codetoinj = new List<byte>();
+		byte[] incSeq = { 0xFF, 0x05, 0xF6, 0xFF, 0xFF, 0xFF };
+		codetoinj.AddRange(incSeq);
+		codetoinj.AddRange(memory.ReadBytes((IntPtr)(modules.First().BaseAddress + 0x191FE80), 0xF));
+		byte[] jmpback = { 0xFF, 0x25, 0, 0, 0, 0, 0x8F, 0xFE, 0x68, 0xC0, 0xF7, 0x7F, 0, 0 };	// jmp DisableInput+0xF
+		codetoinj.AddRange(jmpback);
+		memory.WriteBytes((IntPtr)vars.injCodePtr, codetoinj.ToArray());
+
+		byte[] overwrjmp = { 0xFF, 0x25, 0, 0, 0, 0 };
+		memory.WriteBytes((IntPtr)(modules.First().BaseAddress + 0x191FE80), overwrjmp);
+		memory.WriteBytes((IntPtr)(modules.First().BaseAddress + 0x191FE86), BitConverter.GetBytes((long)vars.injCodePtr));
+		memory.WriteValue<byte>((IntPtr)(modules.First().BaseAddress + 0x191FE86 + 8), 0x90);
+
+		vars.sigPtr = IntPtr.Zero;
+	}
 }
 
 update
 {
+	if (vars.sigPtr != IntPtr.Zero)
+		if (memory.ReadValue<ulong>((IntPtr)vars.sigPtr) == 0x10002080C21)
+			return true;
+		else
+		{
+			vars.sigPtr = IntPtr.Zero;		// sig lost
+			print("Sig lost");
+		}
+
 	if (current.coordX == 0 && current.coordY == 0 && current.coordZ == 0)
 	{
 		vars.softReset = true;
 		return false;
+	}
+	else if (vars.sigPtr == IntPtr.Zero)		// game running, initialize sig
+	{
+		IntPtr sig;
+		new DeepPointer(0x073C5ED8, 0x180, 0xA0, 0x98, 0xA8, 0x60, 0x328, 0x188).DerefOffsets(game, out sig);
+		vars.sigPtr = sig;
+		print("Sig address = " + vars.sigPtr.ToString("X"));
 	}
 }
 
@@ -159,7 +199,12 @@ split
 		if (dist <= radius)
 			return true;
 	}
-	else if (324000 <= current.coordZ && current.coordZ <= 324300) // End Split
+	else if(memory.ReadValue<int>((IntPtr)vars.endSeqPtr) > 0)
+	{
+		memory.WriteValue<int>((IntPtr)vars.endSeqPtr, 0);
+		return true;
+	}
+	/*else if (324000 <= current.coordZ && current.coordZ <= 324300) // End Split
 	{
 		double dist1 = vars.GetDistance2(current.coordX, current.coordY, -4543.74, 19306.0);
 		double dist2 = vars.GetDistance2(current.coordX, current.coordY, -4908.92, 18861.9);
@@ -167,7 +212,7 @@ split
 		
 		if (Math.Abs(vars.DistEnd - total) <= 30)
 			return true;
-	}
+	}*/
 }
 
 onSplit
@@ -179,4 +224,14 @@ onSplit
 onReset
 {
 	vars.currSplit = 0;
+}
+
+shutdown
+{
+	if(game != null)		// remove our hook and free mem
+	{
+		var origcode = memory.ReadBytes((IntPtr)(vars.injCodePtr + 6), 0xF);
+		memory.WriteBytes((IntPtr)(modules.First().BaseAddress + 0x191FE80), origcode);
+		memory.FreeMemory((IntPtr)vars.endSeqPtr);
+	}
 }
