@@ -148,9 +148,6 @@ start
 
 split
 {
-	print("--");
-	print(vars.currSplit.ToString());
-	print(vars.splits.Count.ToString());
 	if (vars.currSplit < vars.splits.Count)
 	{
 		var i = vars.splits[vars.currSplit];
