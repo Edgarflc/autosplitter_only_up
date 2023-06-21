@@ -88,7 +88,7 @@ init
 	// central point coords x/y/z and radius for each sphere
 	vars.splitsCoords = new double[,] {
 		{ 1675.95, 4147.05, -3111.73, 132 },    // Favelas Elevator
-		{ 3537.17, 17051.4, 9916.54, 1600 },      // Station
+		{ 3537.17, 17051.4, 9916.54, 1600 },    // Station
 		{ 4276.85, 13362.6, 9386.93, 313 }, 	// Rails
 		{ 4623.09, 4867.59, 33884.4, 170 },     // Oil
 		{ 1140.69, 5483.92, 43327.6, 250 },		// Factory
@@ -106,7 +106,8 @@ init
 		{ 1005.6, 24691.5, 244610, 97 },	    // Apple
 		{ 2279.77, 18551, 260399, 291 }, 		// Pipe Exit (Drake)
 		{ -2243.08, 9062.34, 270368, 120 },		// Hoverboard
-		{ 1353.83, 15993, 283501, 3000 },       // Illuminati
+		{ 1353.83, 15993, 283501, 3000 },       // Space Start
+		{ 2380.47, 16558.2, 283679, 295 },		// First Space Bumper
 	};
 	vars.maxSplits = (vars.splitsCoords.Length / 4) + 1;
 	
