@@ -129,14 +129,14 @@ init
 		byte[] incSeq = { 0xFF, 0x05, 0xF6, 0xFF, 0xFF, 0xFF };
 		codetoinj.AddRange(incSeq);
 		codetoinj.AddRange(memory.ReadBytes((IntPtr)(modules.First().BaseAddress + 0x191FE80), 0xF));
-		byte[] jmpback = { 0xFF, 0x25, 0, 0, 0, 0, 0x8F, 0xFE, 0x68, 0xC0, 0xF7, 0x7F, 0, 0 };	// jmp DisableInput+0xF
+		byte[] jmpback = { 0xFF, 0x25, 0, 0, 0, 0, 0x8F, 0xFE, 0x68, 0xC0, 0xF7, 0x7F, 0, 0 };	// jmp DisableInput+0xF to resume function
 		codetoinj.AddRange(jmpback);
 		memory.WriteBytes((IntPtr)vars.injCodePtr, codetoinj.ToArray());
 
-		byte[] overwrjmp = { 0xFF, 0x25, 0, 0, 0, 0 };
+		byte[] overwrjmp = { 0xFF, 0x25, 0, 0, 0, 0 };	// jmp to injected code
 		memory.WriteBytes((IntPtr)(modules.First().BaseAddress + 0x191FE80), overwrjmp);
 		memory.WriteBytes((IntPtr)(modules.First().BaseAddress + 0x191FE86), BitConverter.GetBytes((long)vars.injCodePtr));
-		memory.WriteValue<byte>((IntPtr)(modules.First().BaseAddress + 0x191FE86 + 8), 0x90);
+		memory.WriteValue<byte>((IntPtr)(modules.First().BaseAddress + 0x191FE86 + 8), 0x90);	// add a nop in that 1 byte gap
 
 		vars.sigPtr = IntPtr.Zero;
 	}
@@ -199,9 +199,9 @@ split
 		if (dist <= radius)
 			return true;
 	}
-	else if(memory.ReadValue<int>((IntPtr)vars.endSeqPtr) > 0)
+	else if(memory.ReadValue<int>((IntPtr)vars.endSeqPtr) > 0) // End Split
 	{
-		memory.WriteValue<int>((IntPtr)vars.endSeqPtr, 0);
+		memory.WriteValue<int>((IntPtr)vars.endSeqPtr, 0); // Reset flag for next time
 		return true;
 	}
 	/*else if (324000 <= current.coordZ && current.coordZ <= 324300) // End Split
