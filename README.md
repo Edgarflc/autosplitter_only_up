@@ -1,4 +1,4 @@
-# autosplitter_only_up
+# Autosplitter Only Up!
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE.md) [![Github All Releases](https://img.shields.io/github/downloads/Edgarflc/autosplitter_only_up/total.svg)]()
 
