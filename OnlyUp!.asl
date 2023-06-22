@@ -51,6 +51,7 @@ startup
 	};
 	settings.Add("advanced", true, "Advanced settings");
 	settings.Add("enable_debug_logs", true, "Enable debug logs", "advanced");
+	settings.Add("enableAutoFillSegments", false, "Enable segments autofill", "advanced");
 
 	refreshRate = 30;
 	vars.currSplit = 0;
@@ -147,6 +148,27 @@ init
 	};
 	vars.UpdateEnabledSplits = UpdateEnabledSplits;
 	vars.UpdateEnabledSplits();
+
+	// Reload segments when autofill is enabled 
+	Action AutoFillSegments = () => {
+		var segmentCount = timer.Run.Count;
+		for (int i = 0; i < segmentCount - 1; ++i) {
+			timer.Run.RemoveAt(0);
+		}
+		foreach(var i in vars.splits) {
+			var segmentName = vars.segmentsList["split" + i.ToString()];
+			vars.Log("Add segment => { " + segmentName.ToString() + " }");
+			timer.Run.Add(new Segment(segmentName));
+		}
+		timer.Run.RemoveAt(0);
+		vars.Log("Add segment => { The End }");
+		timer.Run.Add(new Segment("The End"));
+		timer.CallRunManuallyModified();
+	};
+	vars.AutoFillSegments = AutoFillSegments;
+	vars.autoFillSegments = settings["advanced"] && settings["enableAutoFillSegments"];
+	if (vars.autoFillSegments)
+		vars.AutoFillSegments();
 }
 
 update
@@ -162,8 +184,16 @@ update
 	{
 		vars.Log("reload enabled split settings");
 		vars.UpdateEnabledSplits();
+		if (settings["advanced"] && settings["enableAutoFillSegments"])
+			vars.AutoFillSegments();
 		vars.softReset = true;
 		return false;
+	}
+
+	// Trigger autofill segments if settings is enabled
+	if (!vars.autoFillSegments && settings["advanced"] && settings["enableAutoFillSegments"]) {
+		vars.AutoFillSegments();
+		vars.autoFillSegments = settings["advanced"] && settings["enableAutoFillSegments"];
 	}
 
 	if (current.coordX == 0 && current.coordY == 0 && current.coordZ == 0)
