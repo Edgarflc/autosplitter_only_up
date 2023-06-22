@@ -21,28 +21,37 @@ state("OnlyUP-Win64-Shipping")		// pointer paths
 
 startup
 {
-	settings.Add("split0", false, "Favelas Elevator");
-	settings.Add("split1", false, "Train Station");
-	settings.Add("split2", false, "Rails Start");
-	settings.Add("split3", false, "Oil Refinery");
-	settings.Add("split4", false, "Factory");
-	settings.Add("split5", false, "Subway");
-	settings.Add("split6", false, "Drone");
-	settings.Add("split7", false, "Highway");
-	settings.Add("split8", false, "Elevator");
-	settings.Add("split9", false, "Fake Winner Platform");
-	settings.Add("split10", false, "Elevator to Heaven");
-	settings.Add("split11", false, "Heaven");
-	settings.Add("split12", false, "Hand");
-	settings.Add("split13", false, "After Chess");
-	settings.Add("split14", false, "Ship");
-	settings.Add("split15", false, "Cannon");
-	settings.Add("split16", false, "Golden Apple Elevator");
-	settings.Add("split17", false, "Dragon Maze");
-	settings.Add("split18", false, "Hoverboard");
-	settings.Add("split19", false, "Space Start");
-	settings.Add("split20", false, "Space First Bumper");
-	
+	vars.segmentsList = new Dictionary<string,string> {
+		{"split0", "Favelas Elevator"},
+		{"split1", "Train Station"},
+		{"split2", "Rails Start"},
+		{"split3", "Oil Refinery"},
+		{"split4", "Factory"},
+		{"split5", "Subway"},
+		{"split6", "Drone"},
+		{"split7", "Highway"},
+		{"split8", "Elevator"},
+		{"split9", "Fake Winner Platform"},
+		{"split10","Elevator to Heaven"},
+		{"split11","Heaven"},
+		{"split12","Hand"},
+		{"split13","After Chess"},
+		{"split14","Ship"},
+		{"split15","Cannon"},
+		{"split16","Golden Apple Elevator"},
+		{"split17","Dragon Maze"},
+		{"split18","Hoverboard"},
+		{"split19","Space Start"},
+		{"split20","Space First Bumper"},
+	};
+
+	settings.Add("enable", true, "Enable autosplitter");
+	foreach(var Segment in vars.segmentsList) {
+		settings.Add(Segment.Key, false, Segment.Value);
+	};
+	settings.Add("advanced", true, "Advanced settings");
+	settings.Add("enable_debug_logs", true, "Enable debug logs", "advanced");
+
 	refreshRate = 30;
 	vars.currSplit = 0;
 	
@@ -110,16 +119,53 @@ init
 		{ 2380.47, 16558.2, 283679, 295 },		// First Space Bumper
 	};
 	vars.maxSplits = (vars.splitsCoords.Length / 4) + 1;
-	
-	vars.splits = new List<int>();
-	for (int i = 0; i < vars.maxSplits - 1; ++i) {
-		if (settings["split" + i.ToString()])
-			vars.splits.Add(i);
-	}
+
+	// Print logs if setting enable_debug_logs is enabled
+	Action<string> Log = (message) => {
+		if (settings["advanced"] && settings["enable_debug_logs"])
+			print("[ASL][OnlyUP] " + message);
+	};
+	vars.Log = Log;
+
+	// Count enabled splits in settings
+	Func<int> CountEnabledSplits = () => { 
+		return ((IEnumerable<KeyValuePair<string,string>>)vars.segmentsList)
+			.Where(segment => settings[segment.Key])
+			.ToList()
+			.Count;
+	};
+	vars.CountEnabledSplits = CountEnabledSplits;
+
+	// Reload enabled vars.splits list
+	Action UpdateEnabledSplits = () => {
+		vars.splits = new List<int>();
+		for (int i = 0; i < vars.maxSplits - 1; ++i) {
+			if (settings["split" + i.ToString()])
+				vars.splits.Add(i);
+		}
+		vars.Log("splits enabled => { " + String.Join(", ", vars.splits) + " }");
+	};
+	vars.UpdateEnabledSplits = UpdateEnabledSplits;
+	vars.UpdateEnabledSplits();
 }
 
 update
 {
+	// Enable/disable autosplitter script
+	if (!settings["enable"]) {
+		vars.Log("disable autosplitter script");
+		return false;
+	}
+
+	// If the number of enabled splits changes => reload splits and soft reset
+	if (vars.CountEnabledSplits() != vars.splits.Count)
+	{
+		vars.Log("reload enabled split settings");
+		vars.UpdateEnabledSplits();
+		vars.softReset = true;
+		return false;
+	}
+
 	if (current.coordX == 0 && current.coordY == 0 && current.coordZ == 0)
 	{
 		vars.softReset = true;
@@ -131,6 +177,7 @@ reset
 {
 	if (vars.softReset && current.velocX == 0 && current.velocY == 0)
 	{
+		vars.Log("do soft reset");
 		vars.UpdateCurrSplit();
 		vars.softReset = false;
 		return true;
@@ -141,6 +188,7 @@ start
 {
 	if (current.velocX != 0 || current.velocY != 0)
 	{
+		vars.Log("do start");
 		vars.UpdateCurrSplit();
 		vars.softReset = false;
 		return true;
@@ -156,8 +204,11 @@ split
 		double dist = vars.GetDistance3(current.coordX, current.coordY, current.coordZ, vars.splitsCoords[i, 0], vars.splitsCoords[i, 1], vars.splitsCoords[i, 2]);
 		double radius = vars.splitsCoords[i, 3];
 	
-		if (dist <= radius)
+		if (dist <= radius) {
+			var distance = dist - radius;
+			vars.Log("trigger split with distance " + distance.ToString() + " => {" + i.ToString() + ", " + vars.segmentsList["split" + i.ToString()] + "}");
 			return true;
+		}
 	}
 	else if (324000 <= current.coordZ && current.coordZ <= 324300) // End Split
 	{
@@ -165,8 +216,11 @@ split
 		double dist2 = vars.GetDistance2(current.coordX, current.coordY, -4908.92, 18861.9);
 		double total = dist1 + dist2;
 		
-		if (Math.Abs(vars.DistEnd - total) <= 30)
+		if (Math.Abs(vars.DistEnd - total) <= 30){
+			var distance = Math.Abs(vars.DistEnd - total) - 30;
+			vars.Log("trigger end split with distance " +  distance.ToString());
 			return true;
+		}
 	}
 }
 
