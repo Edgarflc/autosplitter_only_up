@@ -45,13 +45,13 @@ startup
 		{"split20","Space First Bumper"},
 	};
 
-	settings.Add("enable", true, "Enable autosplitter");
 	foreach(var Segment in vars.segmentsList) {
 		settings.Add(Segment.Key, false, Segment.Value);
 	};
-	settings.Add("advanced", true, "Advanced settings");
-	settings.Add("enable_debug_logs", true, "Enable debug logs", "advanced");
-	settings.Add("enableAutoFillSegments", false, "Enable segments autofill", "advanced");
+	settings.Add("advanced", false, "Advanced settings");
+	settings.Add("disable_autosplitter", false, "Disable autosplitter", "advanced");
+	settings.Add("enable_debug_logs", false, "Enable debug logs", "advanced");
+	settings.Add("enable_segments_autofill", false, "Enable segments autofill", "advanced");
 
 	refreshRate = 30;
 	vars.currSplit = 0;
@@ -166,16 +166,15 @@ init
 		timer.CallRunManuallyModified();
 	};
 	vars.AutoFillSegments = AutoFillSegments;
-	vars.autoFillSegments = settings["advanced"] && settings["enableAutoFillSegments"];
+	vars.autoFillSegments = settings["advanced"] && settings["enable_segments_autofill"];
 	if (vars.autoFillSegments)
 		vars.AutoFillSegments();
 }
 
 update
 {
-	// Enable/disable autosplitter script
-	if (!settings["enable"]) {
-		vars.Log("disable autosplitter script");
+	// Disable autosplitter script
+	if (settings["advanced"] && settings["disable_autosplitter"]) {
 		return false;
 	}
 
@@ -184,16 +183,16 @@ update
 	{
 		vars.Log("reload enabled split settings");
 		vars.UpdateEnabledSplits();
-		if (settings["advanced"] && settings["enableAutoFillSegments"])
+		if (settings["advanced"] && settings["enable_segments_autofill"])
 			vars.AutoFillSegments();
 		vars.softReset = true;
 		return false;
 	}
 
 	// Trigger autofill segments if settings is enabled
-	if (!vars.autoFillSegments && settings["advanced"] && settings["enableAutoFillSegments"]) {
+	if (!vars.autoFillSegments && settings["advanced"] && settings["enable_segments_autofill"]) {
 		vars.AutoFillSegments();
-		vars.autoFillSegments = settings["advanced"] && settings["enableAutoFillSegments"];
+		vars.autoFillSegments = settings["advanced"] && settings["enable_segments_autofill"];
 	}
 
 	if (current.coordX == 0 && current.coordY == 0 && current.coordZ == 0)
