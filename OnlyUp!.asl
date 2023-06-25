@@ -166,8 +166,8 @@ init
 		timer.CallRunManuallyModified();
 	};
 	vars.AutoFillSegments = AutoFillSegments;
-	vars.autoFillSegments = settings["advanced"] && settings["enable_segments_autofill"];
-	if (vars.autoFillSegments)
+	vars.autoFillSegmentsLastValue = settings["advanced"] && settings["enable_segments_autofill"];
+	if (vars.autoFillSegmentsLastValue)
 		vars.AutoFillSegments();
 }
 
@@ -190,10 +190,13 @@ update
 	}
 
 	// Trigger autofill segments if settings is enabled
-	if (!vars.autoFillSegments && settings["advanced"] && settings["enable_segments_autofill"]) {
+	if (!vars.autoFillSegmentsLastValue && settings["advanced"] && settings["enable_segments_autofill"]) {
 		vars.AutoFillSegments();
-		vars.autoFillSegments = settings["advanced"] && settings["enable_segments_autofill"];
+		vars.autoFillSegmentsLastValue = settings["advanced"] && settings["enable_segments_autofill"];
 	}
+	// Set autofill segments value if settings is enabled
+	if (vars.autoFillSegmentsLastValue && !(settings["advanced"] && settings["enable_segments_autofill"]))
+		vars.autoFillSegmentsLastValue = settings["advanced"] && settings["enable_segments_autofill"];
 
 	if (current.coordX == 0 && current.coordY == 0 && current.coordZ == 0)
 	{
