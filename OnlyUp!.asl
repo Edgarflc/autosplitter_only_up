@@ -118,7 +118,8 @@ init
 	}
 	
 	// endgame cutscene start detection
-	if(game != null && memory.ReadValue<ulong>((IntPtr)(modules.First().BaseAddress + 0x191FE80)) == 0x74894810245C8948)
+	IntPtr DisableInputPtr = modules.First().BaseAddress + 0x191FE80;
+	if(game != null && memory.ReadValue<ulong>(DisableInputPtr) == 0x74894810245C8948)	// check we're at the right place
 	{
 		vars.endSeqPtr = game.AllocateMemory(4+6+15+14);
 		vars.injCodePtr = vars.endSeqPtr + 4;
@@ -129,8 +130,9 @@ init
 		byte[] incSeq = { 0xFF, 0x05, 0xF6, 0xFF, 0xFF, 0xFF };
 		codetoinj.AddRange(incSeq);
 		codetoinj.AddRange(memory.ReadBytes((IntPtr)(modules.First().BaseAddress + 0x191FE80), 0xF));
-		byte[] jmpback = { 0xFF, 0x25, 0, 0, 0, 0, 0x8F, 0xFE, 0x68, 0xC0, 0xF7, 0x7F, 0, 0 };	// jmp DisableInput+0xF to resume function
+		byte[] jmpback = { 0xFF, 0x25, 0, 0, 0, 0 };	// jmp DisableInput+0xF
 		codetoinj.AddRange(jmpback);
+		codetoinj.AddRange(BitConverter.GetBytes((long)(DisableInputPtr+0xF)));
 		memory.WriteBytes((IntPtr)vars.injCodePtr, codetoinj.ToArray());
 
 		byte[] overwrjmp = { 0xFF, 0x25, 0, 0, 0, 0 };	// jmp to injected code
