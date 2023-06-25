@@ -178,25 +178,27 @@ update
 		return false;
 	}
 
-	// If the number of enabled splits changes => reload splits and soft reset
-	if (vars.CountEnabledSplits() != vars.splits.Count)
-	{
-		vars.Log("reload enabled split settings");
-		vars.UpdateEnabledSplits();
-		if (settings["advanced"] && settings["enable_segments_autofill"])
-			vars.AutoFillSegments();
-		vars.softReset = true;
-		return false;
-	}
+	if (timer.CurrentPhase != TimerPhase.Ended) {
+		// If the number of enabled splits changes => reload splits and soft reset
+		if (vars.CountEnabledSplits() != vars.splits.Count)
+		{
+			vars.Log("reload enabled split settings");
+			vars.UpdateEnabledSplits();
+			if (settings["advanced"] && settings["enable_segments_autofill"])
+				vars.AutoFillSegments();
+			vars.softReset = true;
+			return false;
+		}
 
-	// Trigger autofill segments if settings is enabled
-	if (!vars.autoFillSegmentsLastValue && settings["advanced"] && settings["enable_segments_autofill"]) {
-		vars.AutoFillSegments();
-		vars.autoFillSegmentsLastValue = settings["advanced"] && settings["enable_segments_autofill"];
+		// Trigger autofill segments if settings is enabled
+		if (!vars.autoFillSegmentsLastValue && settings["advanced"] && settings["enable_segments_autofill"]) {
+			vars.AutoFillSegments();
+			vars.autoFillSegmentsLastValue = settings["advanced"] && settings["enable_segments_autofill"];
+		}
+		// Set autofill segments last value if settings is disabled
+		if (vars.autoFillSegmentsLastValue && !(settings["advanced"] && settings["enable_segments_autofill"]))
+			vars.autoFillSegmentsLastValue = settings["advanced"] && settings["enable_segments_autofill"];
 	}
-	// Set autofill segments value if settings is enabled
-	if (vars.autoFillSegmentsLastValue && !(settings["advanced"] && settings["enable_segments_autofill"]))
-		vars.autoFillSegmentsLastValue = settings["advanced"] && settings["enable_segments_autofill"];
 
 	if (current.coordX == 0 && current.coordY == 0 && current.coordZ == 0)
 	{
