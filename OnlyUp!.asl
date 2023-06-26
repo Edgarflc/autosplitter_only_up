@@ -49,9 +49,11 @@ startup
 		settings.Add(Segment.Key, false, Segment.Value);
 	};
 	settings.Add("advanced", false, "Advanced settings");
+	settings.SetToolTip("advanced", "Number of splits Segments in \"Edit Splits\" = (Number of splits checked in \"Autosplitter\") + 1");
 	settings.Add("disable_autosplitter", false, "Disable autosplitter", "advanced");
 	settings.Add("enable_debug_logs", false, "Enable debug logs", "advanced");
 	settings.Add("enable_segments_autofill", false, "Enable segments autofill", "advanced");
+	settings.SetToolTip("enable_segments_autofill", "WARNING Any of your current splits Segments in \"Edit Splits\" will be overwritten !\nIf you want to keep them do \"Save Splits As...\" before !");
 
 	refreshRate = 30;
 	vars.currSplit = 0;
