@@ -8,6 +8,7 @@
 - [@us3rT0m](https://www.github.com/us3rT0m)
 - [@wRadion](https://github.com/wRadion)
 - [@traumvogel](https://github.com/traumvogel)
+- [@MkLoM](https://github.com/mlollo)
 
 ## Contributions
 
