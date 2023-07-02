@@ -207,9 +207,13 @@ startup
 	};
 	vars.GetDistance = GetDistance;
 
+	// When there is one segment "The End" skip all splits even checked, if not initialize currSplit to 0
+	// Will be called only when timer reset is done
 	Action UpdateCurrSplit = () => {
 		if (timer.Run.Count == 1)
 			vars.currSplit = vars.splits.Count;
+		else
+			vars.currSplit = 0;
 	};
 	vars.UpdateCurrSplit = UpdateCurrSplit;
 
@@ -265,8 +269,14 @@ init
 		string category = vars.GetCategory();
 		string[] segments = vars.GetSegmentsList();
 
-		if (category == null)
-			return vars.splits.Count == 0;
+		// When all categories are unchecked refresh splits once
+		if (category == null && vars.currentCategory != null) {
+			vars.currentCategory = null;
+			return true;
+		}
+		// When no category is checked do nothing
+		if (category == null && vars.currentCategory == null)
+			return false;
 
 		int count = 0;
 		for (int i = 0; i < segments.Length; ++i)
@@ -286,17 +296,16 @@ init
 	Action UpdateEnabledSplits = () => {
 		string category = vars.GetCategory();
 		string[] segments = vars.GetSegmentsList();
-
+		
+		// Clear splits list even when no category is checked
+		vars.splits.Clear();
 		if (category != null)
 		{
-			vars.splits.Clear();
 			for (int i = 0; i < segments.Length; ++i)
 			{
 				if (settings[category + "_split" + i.ToString()])
 					vars.splits.Add(segments[i]);
 			}
-			vars.UpdateCurrSplit();
-
 			vars.Log("Splits enabled => { " + String.Join(", ", vars.splits) + " }");
 		}
 		else
@@ -325,7 +334,6 @@ init
 		vars.Log("Add segment => { The End }");
 		timer.Run.Add(new Segment("The End"));
 		timer.CallRunManuallyModified();
-		vars.UpdateCurrSplit();
 	};
 	vars.AutoFillSegments = AutoFillSegments;
 	vars.autoFillSegmentsLastValue = settings["enable_segments_autofill"];
@@ -340,6 +348,7 @@ update
 	else
 		vars.Log("Current Split: The End");
 
+	// When timer is in "Ended" state don't refresh splits (only a manual reset can be done is this state)
 	if (timer.CurrentPhase != TimerPhase.Ended)
 	{
 		// If the number of enabled splits changes => reload splits and soft reset
@@ -368,6 +377,7 @@ update
 		}
 	}
 
+	// Player is in the lobby
 	if (current.GObjects == 0)
 	{
 		vars.softReset = true;
@@ -377,6 +387,8 @@ update
 
 reset
 {
+	// Soft reset is enabled when a setting changes or player is in the lobby
+	// Actual reset will be done when the player start a new run and is not moving
 	if (vars.softReset && !current.bIsMoving)
 	{
 		vars.Log("Do soft reset");
@@ -391,7 +403,6 @@ start
 	if (current.bIsMoving)
 	{
 		vars.Log("Do start");
-		vars.UpdateCurrSplit();
 		vars.softReset = false;
 		return true;
 	}
