@@ -208,14 +208,14 @@ startup
 	vars.GetDistance = GetDistance;
 
 	// When there is one segment "The End" skip all splits even checked, if not initialize currSplit to 0
-	// Will be called only when timer reset is done
-	Action UpdateCurrSplit = () => {
+	// Will be called only when timer reset is done or the player starts the run
+	Action InitCurrSplit = () => {
 		if (timer.Run.Count == 1)
 			vars.currSplit = vars.splits.Count;
 		else
 			vars.currSplit = 0;
 	};
-	vars.UpdateCurrSplit = UpdateCurrSplit;
+	vars.InitCurrSplit = InitCurrSplit;
 
 	timer.OnUndoSplit += (s, e) => {
 		if (vars.currSplit > 0)
@@ -264,8 +264,8 @@ init
 	};
 	vars.GetSegmentsList = GetSegmentsList;
 
-	// Count enabled splits in settings
-	Func<bool> TriggerRefreshSplits = () => {
+	// Count enabled splits in settings when a category is checked
+	Func<bool> IsSettingsChanged = () => {
 		string category = vars.GetCategory();
 		string[] segments = vars.GetSegmentsList();
 
@@ -290,7 +290,7 @@ init
 
 		return result;
 	};
-	vars.TriggerRefreshSplits = TriggerRefreshSplits;
+	vars.IsSettingsChanged = IsSettingsChanged;
 
 	// Reload enabled vars.splits list
 	Action UpdateEnabledSplits = () => {
@@ -352,7 +352,7 @@ update
 	if (timer.CurrentPhase != TimerPhase.Ended)
 	{
 		// If the number of enabled splits changes => reload splits and soft reset
-		if (vars.TriggerRefreshSplits())
+		if (vars.IsSettingsChanged())
 		{
 			vars.Log("reload enabled split settings");
 			vars.UpdateEnabledSplits();
@@ -392,7 +392,7 @@ reset
 	if (vars.softReset && !current.bIsMoving)
 	{
 		vars.Log("Do soft reset");
-		vars.UpdateCurrSplit();
+		vars.InitCurrSplit();
 		vars.softReset = false;
 		return true;
 	}
@@ -403,6 +403,7 @@ start
 	if (current.bIsMoving)
 	{
 		vars.Log("Do start");
+		vars.InitCurrSplit();
 		vars.softReset = false;
 		return true;
 	}
