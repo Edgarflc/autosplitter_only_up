@@ -40,7 +40,7 @@ startup
 		{ "Dumpsters", new double[] {1994.05, 13085.2, 73074.5, 685} }, // Bedless
 		{ "Storage", new double[] {-3051.13, 22349.7, 74827.4, 1935} }, // Bedless
 		{ "Supermarket", new double[] {-1960.63, 10287.2, 79651, 1074} }, // Bedless
-		{ "Highway", new double[] {5434.17, 8707.72, 83707.9, 814} }
+		{ "Highway", new double[] {5434.17, 8707.72, 83707.9, 814} },
 		{ "Bus After Highway", new double[] {5002.46, 18339.7, 86105.2, 66} },
 		{ "Big Wheel End", new double[] {-4061.07, 8049.63, 89914.4, 313} }, // Bedless
 		{ "Elevator", new double[] {4235.71, 12152.4, 90037.1, 105} },
