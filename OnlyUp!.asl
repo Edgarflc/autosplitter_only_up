@@ -17,6 +17,9 @@ state("OnlyUP-Win64-Shipping")		// pointer paths
 	double coordZ  : 0x073C5ED8, 0x180, 0xA0, 0x98, 0xA8, 0x60, 0x328, 0x270;
 	double velocX  : 0x07356580, 0x0, 0x30, 0xA8, 0x50, 0xAB8, 0x20, 0x320, 0xB8;
 	double velocY  : 0x07356580, 0x0, 0x30, 0xA8, 0x50, 0xAB8, 0x20, 0x320, 0xC0;
+	ulong GObjects : 0x07356580, 0x0, 0x30, 0xA8, 0x50, 0xAB8, 0x20, 0x0;
+	bool bIsMoving : 0x07356580, 0x0, 0x30, 0xA8, 0x50, 0xAB8, 0x20, 0x678;
+	bool bLocView  : 0x07356580, 0x0, 0x30, 0xA8, 0x50, 0xAB8, 0x20, 0x298;
 }
 
 startup
@@ -211,11 +214,15 @@ startup
 	};
 	vars.GetDistance = GetDistance;
 
-	Action UpdateCurrSplit = () => {
+	// When there is one segment "The End" skip all splits even checked, if not initialize currSplit to 0
+	// Will be called only when timer reset is done or the player starts the run
+	Action InitCurrSplit = () => {
 		if (timer.Run.Count == 1)
 			vars.currSplit = vars.splits.Count;
+		else
+			vars.currSplit = 0;
 	};
-	vars.UpdateCurrSplit = UpdateCurrSplit;
+	vars.InitCurrSplit = InitCurrSplit;
 
 	timer.OnUndoSplit += (s, e) => {
 		if (vars.currSplit > 0)
@@ -264,13 +271,19 @@ init
 	};
 	vars.GetSegmentsList = GetSegmentsList;
 
-	// Count enabled splits in settings
-	Func<bool> TriggerRefreshSplits = () => {
+	// Count enabled splits in settings when a category is checked
+	Func<bool> IsSettingsChanged = () => {
 		string category = vars.GetCategory();
 		string[] segments = vars.GetSegmentsList();
 
-		if (category == null)
-			return vars.splits.Count == 0;
+		// When all categories are unchecked refresh splits once
+		if (category == null && vars.currentCategory != null) {
+			vars.currentCategory = null;
+			return true;
+		}
+		// When no category is checked do nothing
+		if (category == null && vars.currentCategory == null)
+			return false;
 
 		int count = 0;
 		for (int i = 0; i < segments.Length; ++i)
@@ -284,23 +297,22 @@ init
 
 		return result;
 	};
-	vars.TriggerRefreshSplits = TriggerRefreshSplits;
+	vars.IsSettingsChanged = IsSettingsChanged;
 
 	// Reload enabled vars.splits list
 	Action UpdateEnabledSplits = () => {
 		string category = vars.GetCategory();
 		string[] segments = vars.GetSegmentsList();
-
+		
+		// Clear splits list even when no category is checked
+		vars.splits.Clear();
 		if (category != null)
 		{
-			vars.splits.Clear();
 			for (int i = 0; i < segments.Length; ++i)
 			{
 				if (settings[category + "_split" + i.ToString()])
 					vars.splits.Add(segments[i]);
 			}
-			vars.UpdateCurrSplit();
-
 			vars.Log("Splits enabled => { " + String.Join(", ", vars.splits) + " }");
 		}
 		else
@@ -329,38 +341,11 @@ init
 		vars.Log("Add segment => { The End }");
 		timer.Run.Add(new Segment("The End"));
 		timer.CallRunManuallyModified();
-		vars.UpdateCurrSplit();
 	};
 	vars.AutoFillSegments = AutoFillSegments;
 	vars.autoFillSegmentsLastValue = settings["enable_segments_autofill"];
 	if (vars.autoFillSegmentsLastValue)
 		vars.AutoFillSegments();
-
-	// Endgame cutscene start detection
-	IntPtr DisableInputPtr = modules.First().BaseAddress + 0x191FE80;
-	if (game != null && memory.ReadValue<ulong>(DisableInputPtr) == 0x74894810245C8948) // Check we're at the right place
-	{
-		vars.endSeqPtr = game.AllocateMemory(4+6+15+14);
-		vars.injCodePtr = vars.endSeqPtr + 4;
-
-		vars.Log("pointer to hook code : " + vars.injCodePtr.ToString("X"));
-
-		List<byte> codetoinj = new List<byte>();
-		byte[] incSeq = { 0xFF, 0x05, 0xF6, 0xFF, 0xFF, 0xFF };
-		codetoinj.AddRange(incSeq);
-		codetoinj.AddRange(memory.ReadBytes((IntPtr)(modules.First().BaseAddress + 0x191FE80), 0xF));
-		byte[] jmpback = { 0xFF, 0x25, 0, 0, 0, 0 };	// jmp DisableInput+0xF
-		codetoinj.AddRange(jmpback);
-		codetoinj.AddRange(BitConverter.GetBytes((long)(DisableInputPtr+0xF)));
-		memory.WriteBytes((IntPtr)vars.injCodePtr, codetoinj.ToArray());
-
-		byte[] overwrjmp = { 0xFF, 0x25, 0, 0, 0, 0 };	// jmp to injected code
-		memory.WriteBytes((IntPtr)(modules.First().BaseAddress + 0x191FE80), overwrjmp);
-		memory.WriteBytes((IntPtr)(modules.First().BaseAddress + 0x191FE86), BitConverter.GetBytes((long)vars.injCodePtr));
-		memory.WriteValue<byte>((IntPtr)(modules.First().BaseAddress + 0x191FE86 + 8), 0x90);	// add a nop in that 1 byte gap
-
-		vars.sigPtr = IntPtr.Zero;
-	}
 }
 
 update
@@ -370,10 +355,11 @@ update
 	else
 		vars.Log("Current Split: The End");
 
+	// When timer is in "Ended" state don't refresh splits (only a manual reset can be done is this state)
 	if (timer.CurrentPhase != TimerPhase.Ended)
 	{
 		// If the number of enabled splits changes => reload splits and soft reset
-		if (vars.TriggerRefreshSplits())
+		if (vars.IsSettingsChanged())
 		{
 			vars.Log("reload enabled split settings");
 			vars.UpdateEnabledSplits();
@@ -398,39 +384,22 @@ update
 		}
 	}
 
-	if (vars.sigPtr != IntPtr.Zero)
-	{
-		if (memory.ReadValue<ulong>((IntPtr)vars.sigPtr) == 0x10002080C21)
-		{
-			return true;
-		}
-		else
-		{
-			vars.sigPtr = IntPtr.Zero;		// sig lost
-			vars.Log("Sig lost");
-		}
-	}
-
-	if (current.coordX == 0 && current.coordY == 0 && current.coordZ == 0)
+	// Player is in the lobby
+	if (current.GObjects == 0)
 	{
 		vars.softReset = true;
 		return false;
-	}
-	else if (vars.sigPtr == IntPtr.Zero) // Game running, initialize sig
-	{
-		IntPtr sig;
-		new DeepPointer(0x073C5ED8, 0x180, 0xA0, 0x98, 0xA8, 0x60, 0x328, 0x188).DerefOffsets(game, out sig);
-		vars.sigPtr = sig;
-		vars.Log("Sig address = " + vars.sigPtr.ToString("X"));
 	}
 }
 
 reset
 {
-	if (vars.softReset && current.velocX == 0 && current.velocY == 0)
+	// Soft reset is enabled when a setting changes or player is in the lobby
+	// Actual reset will be done when the player start a new run and is not moving
+	if (vars.softReset && !current.bIsMoving)
 	{
 		vars.Log("Do soft reset");
-		vars.UpdateCurrSplit();
+		vars.InitCurrSplit();
 		vars.softReset = false;
 		return true;
 	}
@@ -438,10 +407,10 @@ reset
 
 start
 {
-	if (current.velocX != 0 || current.velocY != 0)
+	if (current.bIsMoving)
 	{
 		vars.Log("Do start");
-		vars.UpdateCurrSplit();
+		vars.InitCurrSplit();
 		vars.softReset = false;
 		return true;
 	}
@@ -462,9 +431,9 @@ split
 			return true;
 		}
 	}
-	else if (memory.ReadValue<int>((IntPtr)vars.endSeqPtr) > 0) // End Split
+	else if (!current.bLocView) // End Split
 	{
-		memory.WriteValue<int>((IntPtr)vars.endSeqPtr, 0); // Reset flag for next time
+		vars.Log("Trigger split The End");
 		return true;
 	}
 }
@@ -480,14 +449,4 @@ onSplit
 onReset
 {
 	vars.currSplit = 0;
-}
-
-shutdown
-{
-	if (game != null) // Remove our hook and free mem
-	{
-		var origcode = memory.ReadBytes((IntPtr)(vars.injCodePtr + 6), 0xF);
-		memory.WriteBytes((IntPtr)(modules.First().BaseAddress + 0x191FE80), origcode);
-		memory.FreeMemory((IntPtr)vars.endSeqPtr);
-	}
 }
