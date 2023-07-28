@@ -27,6 +27,7 @@ startup
 		{ "Pipe Maze Start", new double[] {2433.23, 5994.06, 1943.62, 106} },
 		{ "Train Station", new double[] {3537.17, 17051.4, 9916.54, 1600} },
 		{ "Rails Start", new double[] {4276.85, 13362.6, 9386.93, 313} },
+		{ "Bed Rails Skip", new double[] {4464.73, 9947.69, 9343.95, 211} },
 		{ "Oil Refinery", new double[] {4623.09, 4867.59, 33884.4, 170} },
 		{ "Factory", new double[] {1140.69, 5483.92, 43327.6, 250} },
 		{ "Subway", new double[] {2257.24, 18548.2, 48138.5, 1254} },
@@ -40,6 +41,7 @@ startup
 		{ "Storage", new double[] {-3051.13, 22349.7, 74827.4, 1935} }, // Bedless
 		{ "Supermarket", new double[] {-1960.63, 10287.2, 79651, 1074} }, // Bedless
 		{ "Highway", new double[] {5434.17, 8707.72, 83707.9, 814} },
+		{ "Bus After Highway", new double[] {5002.46, 18339.7, 86105.2, 66} },
 		{ "Big Wheel End", new double[] {-4061.07, 8049.63, 89914.4, 313} }, // Bedless
 		{ "Elevator", new double[] {4235.71, 12152.4, 90037.1, 105} },
 		{ "Fake Winner Platform", new double[] {2936, 8172.93, 105057, 2921} },
@@ -76,11 +78,13 @@ startup
 		"Pipe Maze Start",
 		"Train Station",
 		"Rails Start",
+		"Bed Rails Skip",
 		"Oil Refinery",
 		"Factory",
 		"Subway",
 		"Drone",
 		"Highway",
+		"Bus After Highway",
 		"Elevator",
 		"Fake Winner Platform",
 		"Elevator to Heaven",
@@ -114,6 +118,7 @@ startup
 		"Storage", // Bedless
 		"Supermarket", // Bedless
 		"Highway",
+		"Bus After Highway",
 		"Big Wheel End", // Bedless
 		"Elevator",
 		"Fake Winner Platform",
@@ -138,11 +143,13 @@ startup
 		"Pipe Maze Start",
 		"Train Station",
 		"Rails Start",
+		"Bed Rails Skip",
 		"Oil Refinery",
 		"Factory",
 		"Subway",
 		"Drone",
 		"Highway",
+		"Bus After Highway",
 		"Elevator",
 		"Fake Winner Platform",
 		"Crown", // All Collectibles
